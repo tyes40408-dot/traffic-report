@@ -217,7 +217,8 @@
             {
               license_plate: carNumber,
               description: fullDescription,
-              video_url: publicUrl
+              video_url: publicUrl,
+status: 'pending'
             }
           ]);
 
@@ -243,10 +244,11 @@
       const reportsList = document.getElementById('reportsList');
       reportsList.innerHTML = '載入中...';
 
-      let dbQuery = supabase
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+     let dbQuery = supabase
+  .from('reports')
+  .select('*')
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false });
 
       if (query) {
         dbQuery = dbQuery.ilike('license_plate', `%${query.trim()}%`);
