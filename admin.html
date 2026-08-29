@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交通違規檢舉 - 後台審核系統</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    .report-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 6px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .report-card img { width: 100%; max-height: 400px; object-fit: contain; margin-top: 10px; border-radius: 4px; }
+    .report-card video { width: 100%; max-height: 400px; margin-top: 10px; border-radius: 4px; background: #000; }
+    .btn-group { margin-top: 15px; display: flex; gap: 10px; }
+    .btn-approve { background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; flex: 1; }
+    .btn-delete { background-color: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; flex: 1; }
+    .btn-approve:hover { background-color: #218838; }
+    .btn-delete:hover { background-color: #c82333; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <h2>🛡️ 待審核案件列表</h2>
+    <button id="refreshBtn" style="padding: 6px 12px; cursor: pointer;">重新整理</button>
+  </div>
+
+  <div id="pendingList">載入待審核案件中...</div>
+
+  <script>
+    (function() {
+      const SUPABASE_URL = "https://wnnqvhayptbulmlreidu.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_TEguzGutHDpzCc8bbXri9Q_5oxfAUTF";
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const pendingList = document.getElementById('pendingList');
+      const refreshBtn = document.getElementById('refreshBtn');
+
+      function renderMedia(url) {
+        if (!url) return '<p>無媒體資料</p>';
+        const path = url.split('?')[0].toLowerCase();
+        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(path);
+
+        if (isImage) {
+          return `<img src="${url}" alt="舉報照片">`;
+        } else {
+          return `<video controls preload="metadata">
+                    <source src="${url}">
+                    您的瀏覽器不支援影片播放。
+                  </video>`;
+        }
+      }
+
+      async function loadPendingReports() {
+        pendingList.innerHTML = "讀取中...";
+        const { data, error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .eq('status', 'pending')
+          .order('id', { ascending: false });
+
+        if (error) {
+          pendingList.innerHTML = "讀取失敗：" + error.message;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          pendingList.innerHTML = "<p style='color: #666;'>目前沒有任何待審核案件！</p>";
+          return;
+        }
+
+        pendingList.innerHTML = data.map(item => `
+          <div class="report-card" id="card-${item.id}">
+            <div><strong>案件 ID：</strong>${item.id}</div>
+            <div><strong>車牌號碼：</strong><span style="font-size: 18px; font-weight: bold; color: #d9534f;">${item.license_plate || '未提供'}</span></div>
+            <div><strong>違規描述：</strong>${item.description || '無描述'}</div>
+            ${renderMedia(item.video_url)}
+            <div class="btn-group">
+              <button class="btn-approve" onclick="approveReport(${item.id})">✅ 一鍵通過</button>
+              <button class="btn-delete" onclick="deleteReport(${item.id})">🗑️ 剔除刪除</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // 審核通過
+      window.approveReport = async function(id) {
+        const { error } = await supabaseClient
+          .from('reports')
+          .update({ status: 'approved' })
+          .eq('id', id);
+
+        if (error) {
+          alert('審核失敗：' + error.message);
+        } else {
+          document.getElementById(`card-${id}`).remove();
+          if (pendingList.children.length === 0) {
+            pendingList.innerHTML = "<p style='color: #666;'>目前沒有任何待審核案件！</p>";
+          }
+        }
+      };
+
+      // 刪除不合格案件
+      window.deleteReport = async function(id) {
+        if (!confirm('確定要刪除這筆不合格的案件嗎？')) return;
+
+        const { error } = await supabaseClient
+          .from('reports')
+          .select('*')
+          .eq('id', id);
+
+        const { error: delError } = await supabaseClient
+          .from('reports')
+          .delete()
+          .eq('id', id);
+
+        if (delError) {
+          alert('刪除失敗：' + delError.message);
+        } else {
+          document.getElementById(`card-${id}`).remove();
+          if (pendingList.children.length === 0) {
+            pendingList.innerHTML = "<p style='color: #666;'>目前沒有任何待審核案件！</p>";
+          }
+        }
+      };
+
+      refreshBtn.addEventListener('click', loadPendingReports);
+      loadPendingReports();
+    })();
+  </script>
+</body>
+</html>
