@@ -147,7 +147,7 @@
     <input type="text" id="searchInput" placeholder="輸入車牌號碼搜尋 (例：ABD-1522)">
     <button type="button" onclick="searchReports()">查詢</button>
   </div>
-  <button type="button" onclick="loadReports()" style="background-color: #6c757d; margin-bottom: 20px;">顯示全部紀錄</button>
+  <button type="button" onclick="loadReports('')" style="background-color: #6c757d; margin-bottom: 20px;">顯示全部紀錄</button>
 
   <div id="reportsList"></div>
 
@@ -155,7 +155,7 @@
     const SUPABASE_URL = "https://wnnqvhayptbulmrelidu.supabase.co"; 
     const SUPABASE_ANON_KEY = "sb_publishable_TEguzGuhDPzc8bbXri9Q_5oxfA"; 
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const reportForm = document.getElementById('reportForm');
     const submitBtn = document.getElementById('submitBtn');
